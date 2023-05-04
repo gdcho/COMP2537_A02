@@ -1,0 +1,33 @@
+<%- include("templates/headers") %>
+<head>
+    <title>Admin Dashboard</title>
+  </head>
+  <body>
+    <h1>Welcome, <%= username %>!</h1>
+    <h2>Admin Dashboard</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>User Type</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% users.forEach(user => { %>
+          <tr>
+            <td><%= user.username %></td>
+            <td><%= user.user_type %></td>
+            <td>
+              <% if (user.user_type !== 'admin') { %>
+                <a href="/promote/<%= user.username %>">Promote</a>
+              <% } else { %>
+                <a href="/demote/<%= user.username %>">Demote</a>
+              <% } %>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </body>
+<%- include("templates/footer") %>

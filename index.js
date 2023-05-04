@@ -8,12 +8,10 @@ const bcrypt = require("bcrypt");
 const saltRounds = 12;
 
 const port = process.env.PORT || 3000;
-
 const app = express();
-
 const Joi = require("joi");
 
-const expireTime = 60 * 60 * 1000; //expires after 1 hour  (minutes * seconds * millis)
+const expireTime = 1 * 60 * 60 * 1000;
 
 app.set("view engine", "ejs");
 
@@ -72,8 +70,9 @@ function isAdmin(req) {
 
 function adminAuthorization(req, res, next) {
   if (!isAdmin(req)) {
+    var isAuthenticated = req.session.authenticated || false;
     res.status(403);
-    res.render("errorMessage", { error: "Not Authorized" });
+    res.render("403", { authenticated: isAuthenticated, error: "Not Authorized - 403" });
     return;
   } else {
     next();
@@ -81,18 +80,12 @@ function adminAuthorization(req, res, next) {
 }
 
 app.get("/", (req, res) => {
-  if (!req.session.authenticated) {
-    const buttons = `
-        <button onclick="window.location.href='/signup'">Sign up</button>
-        <button onclick="window.location.href='/login'">Log in</button>
-      `;
-    res.send(`<h1>Create an account or log in</h1>${buttons}`);
+  var isAuthenticated = req.session.authenticated || false;
+  if (!isAuthenticated) {
+    res.render("main", { authenticated: isAuthenticated });
+    return;
   } else {
-    const buttons = `
-        <button onclick="window.location.href='/members'">Go to Members Area</button>
-        <button onclick="window.location.href='/logout'">Log out</button>
-      `;
-    res.send(`<h1>Hello, ${req.session.username}!</h1>${buttons}`);
+    res.render("index", { authenticated: isAuthenticated, username: req.session.username });
   }
 });
 
@@ -129,69 +122,14 @@ app.get("/nosql-injection", async (req, res) => {
   res.send(`<h1>Hello ${username}</h1>`);
 });
 
-app.get("/about", (req, res) => {
-  var color = req.query.color;
-
-  res.send("<h1 style='color:" + color + ";'>David gdcho Cho</h1>");
-});
-
-app.get("/contact", (req, res) => {
-  var missingEmail = req.query.missing;
-  var html = `
-        email address:
-        <form action='/submitEmail' method='post'>
-            <input name='email' type='text' placeholder='email'>
-            <button>Submit</button>
-        </form>
-    `;
-  if (missingEmail) {
-    html += "<br> Email is required";
-  }
-  res.send(html);
-});
-
-app.post("/submitEmail", (req, res) => {
-  var email = req.body.email;
-  if (!email) {
-    res.redirect("/contact?missing=1");
-  } else {
-    res.send("Thanks for subscribing with your email: " + email);
-  }
-});
-
-app.get("/signUp", (req, res) => {
-  var html = `
-    <h2>Creater User Account</h2>
-    <form action='/submitUser' method='post'>
-    Username:
-    <input name='username' type='text' placeholder='Username'>
-    <br>
-    Email:
-    <input name='email' type='text' placeholder='Email'>
-    <br>
-    Password:
-    <input name='password' type='password' placeholder='Password'>
-    <br><br>
-    <button><a href="/" style="text-decoration: none; color:black;">Home</a></button>
-    <button>Create User</button>
-    </form>
-    `;
-  res.send(html);
+app.get("/signup", (req, res) => {
+  var isAuthenticated = req.session.authenticated || false;
+  res.render("signup", { authenticated: isAuthenticated });
 });
 
 app.get("/login", (req, res) => {
-  var html = `
-    <h2>Log In</h2>
-    <form action='/loggingin' method='post'>
-    Email: <input name='email' type='text' placeholder='Email'>
-    <br>
-    Password: <input name='password' type='password' placeholder='Password'>
-    <br><br>
-    <button><a href="/" style="text-decoration: none; color:black;">Home</a></button>
-    <button>Log-in</button>
-    </form>
-    `;
-  res.send(html);
+  var isAuthenticated = req.session.authenticated;
+  res.render("login", { authenticated: isAuthenticated });
 });
 
 app.post("/submitUser", async (req, res) => {
@@ -199,32 +137,14 @@ app.post("/submitUser", async (req, res) => {
   var email = req.body.email;
   var password = req.body.password;
 
-  if (!username && !email && !password) {
-    res.send(
-      `All fields are required. <br><br>Please <a href='/signup'>try again</a>`
-    );
-    return;
-  }
-
   if (!username) {
-    res.send(
-      `Username is required. <br><br>Please <a href='/signup'>try again</a>`
-    );
-    return;
+    res.render("signup_error", { error: "Name" });
   }
-
-  if (!email || !password) {
-    res.send(
-      `Please provide an email address. <br><br>Please <a href='/signup'>try again</a>`
-    );
-    return;
+  if (!email) {
+    res.render("signup_error", { error: "Email" });
   }
-
   if (!password) {
-    res.send(
-      `Please provide a password. <br><br>Please <a href='/signup'>try again</a>`
-    );
-    return;
+    res.render("signup_error", { error: "Password" });
   }
 
   const schema = Joi.object({
@@ -233,11 +153,10 @@ app.post("/submitUser", async (req, res) => {
     email: Joi.string().email().required(),
   });
 
-  const validationResult = schema.validate({ username, password, email });
+  const validationResult = schema.validate({ email, username, password });
   if (validationResult.error != null) {
     console.log(validationResult.error);
-    var errorMessage = validationResult.error.details[0].message;
-    res.send(`Error: ${errorMessage}. <br><br> Please <a href="/signup">try again</a>.`);
+    res.render("errorMessage", { error: `${validationResult.error.message}` });
     return;
   }
 
@@ -247,103 +166,113 @@ app.post("/submitUser", async (req, res) => {
     username: username,
     password: hashedPassword,
     email: email,
+    user_type: "user",
   });
-  console.log("Inserted user");
 
   req.session.authenticated = true;
   req.session.username = username;
   req.session.cookie.maxAge = expireTime;
 
-  res.redirect("/loggedin");
+  res.redirect("/members");
 });
 
-app.post("/loggingin", async (req, res) => {
+app.post("/loggingIn", async (req, res) => {
   var email = req.body.email;
   var password = req.body.password;
 
-  let errorMessage = '';
-
-  if (!email) {
-    errorMessage += 'Please provide an email address. ';
-  }
-
-  if (!password) {
-    errorMessage += 'Please provide a password. ';
-  }
-
-  if (errorMessage) {
-    res.send(`${errorMessage}<br><br><a href='/login'>Try again</a>`);
+  const schema = Joi.string().max(20).required();
+  const validationResult = schema.validate(email);
+  if (validationResult.error != null) {
+    console.log(validationResult.error);
+    res.render("errorMessage", { error: `${validationResult.error.message}` });
     return;
   }
 
   const result = await userCollection
     .find({ email: email })
-    .project({ username: 1, password: 1, _id: 1 })
+    .project({ username: 1, email: 1, password: 1, user_type: 1, _id: 1 })
     .toArray();
 
   console.log(result);
-  if (result.length === 0) {
-    res.send(
-      'Invalid email/password combination. <br><br> Please <a href="/login">try again</a>.'
-    );
-    return;
-  } else if (result.length != 1) {
-    res.redirect("/login");
+  if (result.length != 1) {
+    res.render("errorMessage", { error: "User does not exist" });
     return;
   }
   if (await bcrypt.compare(password, result[0].password)) {
-    console.log("correct password");
     req.session.authenticated = true;
     req.session.email = email;
     req.session.username = result[0].username;
+    req.session.user_type = result[0].user_type;
     req.session.cookie.maxAge = expireTime;
 
-    res.redirect("/loggedin");
+    res.redirect("/members");
     return;
   } else {
-    res.send(
-      'Invalid email/password combination. <br><br> Please <a href="/login">try again</a>.'
-    );
+    res.render("errorMessage", {
+      error: "Incorrect email/password combination",
+    });
     return;
   }
 });
 
-
+app.use("/loggedin", sessionValidation);
 app.get("/loggedin", (req, res) => {
-  if (req.session.authenticated) {
-    res.redirect("/members");
-  } else {
-    res.redirect("/");
+  if (!req.session.authenticated) {
+    res.redirect("/login");
   }
+  res.render("loggedin");
 });
 
 app.get("/logout", (req, res) => {
-  res.render("logout");
+  req.session.destroy();
+  res.redirect("/");
 });
 
-
-app.get("/members", (req, res) => {
-  if (!req.session.authenticated) {
-    res.redirect("/");
+app.get('/members', (req, res) => {
+  var isAuthenticated = req.session.authenticated;
+  if (!isAuthenticated) {
+    res.redirect('login');
   } else {
-    const images = ["/cat_meme.jpg", "/p_cat.gif", "/yelling_cat.jpg"];
-    randomIndex = Math.floor(Math.random() * images.length);
-    res.send(`<h1>Hello, ${req.session.username}.</h1>
-    <img src='${images[randomIndex]}' width= "250px">
-    <form action='/logout' method='get'> 
-      <br>
-      <button type ='submit'>Log out</button>
-    </form>`);
+    var username = req.session.username;
+    res.render("members", { authenticated: isAuthenticated, username: username });
   }
 });
 
 app.get("/admin", sessionValidation, adminAuthorization, async (req, res) => {
   const result = await userCollection
     .find()
-    .project({ username: 1, _id: 1, user_type: 1 })
+    .project({ username: 1, user_type: 1 })
     .toArray();
+  var isAuthenticated = req.session.authenticated || false;
+  res.render("admin", { users: result, username: req.session.username, authenticated: isAuthenticated });
+});
 
-  res.render("admin", { users: result });
+app.get("/promote/:username", async (req, res) => {
+  var username = req.params.username;
+  try {
+    await userCollection.findOneAndUpdate(
+      { username: username },
+      { $set: { user_type: "admin" } }
+    );
+    res.redirect("/admin");
+  } catch (err) {
+    console.log(err);
+    res.send("Error promoting user");
+  }
+});
+
+app.get("/demote/:username", async (req, res) => {
+  var username = req.params.username;
+  try {
+    await userCollection.findOneAndUpdate(
+      { username: username },
+      { $set: { user_type: "user" } }
+    );
+    res.redirect("/admin");
+  } catch (err) {
+    console.log(err);
+    res.send("Error promoting user");
+  }
 });
 
 app.use(express.static(__dirname + "/public"));

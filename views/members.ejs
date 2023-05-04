@@ -1,0 +1,18 @@
+<%- include("templates/headers") %> 
+<h3>Hello, <%= username %>.</h3>
+  <div class="row">
+    <div class="col-sm">
+      <img src='cat_meme.jpg' class="img-fluid" width="250px">
+    </div>
+    <div class="col-sm">
+      <img src='p_cat.gif' class="img-fluid" width="250px">
+    </div>
+    <div class="col-sm">
+      <img src='yelling_cat.jpg' class="img-fluid" width="250px">
+    </div>
+  </div>
+<form action='/logout' method='get'> 
+  <br>
+  <button type ='submit' class="btn btn-secondary btn-sm">Log out</button>
+</form>
+<%- include("templates/footer") %> 

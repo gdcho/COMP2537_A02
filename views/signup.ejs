@@ -1,0 +1,17 @@
+<%- include("templates/headers") %>
+<head>
+    <title>Sign up</title>
+  </head>
+  <body>
+    <h1>Create an Account</h1>
+    <form action="/submitUser" method="post">
+      <label for="username">Username:</label>
+      <input type="text" name="username" required><br>
+      <label for="email">Email:</label>
+      <input type="email" name="email" required><br>
+      <label for="password">Password:</label>
+      <input type="password" name="password" required><br>
+      <input type="submit" value="Sign up">
+    </form>
+  </body>
+<%- include("templates/footer") %>
