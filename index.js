@@ -15,13 +15,14 @@ const Joi = require("joi");
 
 const expireTime = 60 * 60 * 1000; //expires after 1 hour  (minutes * seconds * millis)
 
+app.set("view engine", "ejs");
+
 /* secret information section */
 const mongodb_host = process.env.MONGODB_HOST;
 const mongodb_user = process.env.MONGODB_USER;
 const mongodb_password = process.env.MONGODB_PASSWORD;
 const mongodb_database = process.env.MONGODB_DATABASE;
 const mongodb_session_secret = process.env.MONGODB_SESSION_SECRET;
-
 const node_session_secret = process.env.NODE_SESSION_SECRET;
 /* END secret section */
 
@@ -46,6 +47,38 @@ app.use(
     resave: true,
   })
 );
+
+function isValidSession(req) {
+  if (req.session.authenticated) {
+    return true;
+  }
+  return false;
+}
+
+function sessionValidation(req, res, next) {
+  if (isValidSession(req)) {
+    next();
+  } else {
+    res.redirect("/login");
+  }
+}
+
+function isAdmin(req) {
+  if (req.session.user_type == "admin") {
+    return true;
+  }
+  return false;
+}
+
+function adminAuthorization(req, res, next) {
+  if (!isAdmin(req)) {
+    res.status(403);
+    res.render("errorMessage", { error: "Not Authorized" });
+    return;
+  } else {
+    next();
+  }
+}
 
 app.get("/", (req, res) => {
   if (!req.session.authenticated) {
@@ -96,35 +129,35 @@ app.get("/nosql-injection", async (req, res) => {
   res.send(`<h1>Hello ${username}</h1>`);
 });
 
-// app.get("/about", (req, res) => {
-//   var color = req.query.color;
+app.get("/about", (req, res) => {
+  var color = req.query.color;
 
-//   res.send("<h1 style='color:" + color + ";'>David gdcho Cho</h1>");
-// });
+  res.send("<h1 style='color:" + color + ";'>David gdcho Cho</h1>");
+});
 
-// app.get("/contact", (req, res) => {
-//   var missingEmail = req.query.missing;
-//   var html = `
-//         email address:
-//         <form action='/submitEmail' method='post'>
-//             <input name='email' type='text' placeholder='email'>
-//             <button>Submit</button>
-//         </form>
-//     `;
-//   if (missingEmail) {
-//     html += "<br> Email is required";
-//   }
-//   res.send(html);
-// });
+app.get("/contact", (req, res) => {
+  var missingEmail = req.query.missing;
+  var html = `
+        email address:
+        <form action='/submitEmail' method='post'>
+            <input name='email' type='text' placeholder='email'>
+            <button>Submit</button>
+        </form>
+    `;
+  if (missingEmail) {
+    html += "<br> Email is required";
+  }
+  res.send(html);
+});
 
-// app.post("/submitEmail", (req, res) => {
-//   var email = req.body.email;
-//   if (!email) {
-//     res.redirect("/contact?missing=1");
-//   } else {
-//     res.send("Thanks for subscribing with your email: " + email);
-//   }
-// });
+app.post("/submitEmail", (req, res) => {
+  var email = req.body.email;
+  if (!email) {
+    res.redirect("/contact?missing=1");
+  } else {
+    res.send("Thanks for subscribing with your email: " + email);
+  }
+});
 
 app.get("/signUp", (req, res) => {
   var html = `
@@ -166,8 +199,31 @@ app.post("/submitUser", async (req, res) => {
   var email = req.body.email;
   var password = req.body.password;
 
-  if (!username || !email || !password) {
-    res.send(`All fields are required. <br><br>Please <a href='/signup'>try again</a>`);
+  if (!username && !email && !password) {
+    res.send(
+      `All fields are required. <br><br>Please <a href='/signup'>try again</a>`
+    );
+    return;
+  }
+
+  if (!username) {
+    res.send(
+      `Username is required. <br><br>Please <a href='/signup'>try again</a>`
+    );
+    return;
+  }
+
+  if (!email || !password) {
+    res.send(
+      `Please provide an email address. <br><br>Please <a href='/signup'>try again</a>`
+    );
+    return;
+  }
+
+  if (!password) {
+    res.send(
+      `Please provide a password. <br><br>Please <a href='/signup'>try again</a>`
+    );
     return;
   }
 
@@ -205,11 +261,18 @@ app.post("/loggingin", async (req, res) => {
   var email = req.body.email;
   var password = req.body.password;
 
-  const schema = Joi.string().max(20).required();
-  const validationResult = schema.validate(email);
-  if (validationResult.error != null) {
-    console.log(validationResult.error);
-    res.send(`Please fill out both email and password fields. <br><br> Please <a href='/login'>try again</a>.`);
+  let errorMessage = '';
+
+  if (!email) {
+    errorMessage += 'Please provide an email address. ';
+  }
+
+  if (!password) {
+    errorMessage += 'Please provide a password. ';
+  }
+
+  if (errorMessage) {
+    res.send(`${errorMessage}<br><br><a href='/login'>Try again</a>`);
     return;
   }
 
@@ -220,7 +283,9 @@ app.post("/loggingin", async (req, res) => {
 
   console.log(result);
   if (result.length === 0) {
-    res.send('Invalid email/password. <br><br> Please <a href="/login">try again</a>.');
+    res.send(
+      'Invalid email/password combination. <br><br> Please <a href="/login">try again</a>.'
+    );
     return;
   } else if (result.length != 1) {
     res.redirect("/login");
@@ -236,10 +301,13 @@ app.post("/loggingin", async (req, res) => {
     res.redirect("/loggedin");
     return;
   } else {
-    res.send('Invalid email/password. <br><br> Please <a href="/login">try again</a>.');
+    res.send(
+      'Invalid email/password combination. <br><br> Please <a href="/login">try again</a>.'
+    );
     return;
   }
 });
+
 
 app.get("/loggedin", (req, res) => {
   if (req.session.authenticated) {
@@ -250,23 +318,9 @@ app.get("/loggedin", (req, res) => {
 });
 
 app.get("/logout", (req, res) => {
-  req.session.destroy();
-  res.redirect("/");
+  res.render("logout");
 });
 
-app.get("/cat/:id", (req, res) => {
-  var cat = req.params.id;
-
-  if (cat == 1) {
-    res.send("Fluffy: <img src='/cat_meme.jpg' style='width:250px;'>");
-  } else if (cat == 2) {
-    res.send("Socks: <img src='/p_cat.gif' style='width:250px;'>");
-  } else if (cat == 3) {
-    res.send("Socks: <img src='/yelling_cat.jpg' style='width:250px;'>");
-  } else {
-    res.send("Invalid cat id: " + cat);
-  }
-});
 
 app.get("/members", (req, res) => {
   if (!req.session.authenticated) {
@@ -283,13 +337,20 @@ app.get("/members", (req, res) => {
   }
 });
 
+app.get("/admin", sessionValidation, adminAuthorization, async (req, res) => {
+  const result = await userCollection
+    .find()
+    .project({ username: 1, _id: 1, user_type: 1 })
+    .toArray();
+
+  res.render("admin", { users: result });
+});
+
 app.use(express.static(__dirname + "/public"));
 
 app.get("*", (req, res) => {
   res.status(404);
-  res.send(
-    '<img src = "/cat_404.gif" width="250px"></img><br> <h2>Page not found - 404</h2>'
-  );
+  res.render("404");
 });
 
 app.listen(port, () => {
