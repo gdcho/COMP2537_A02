@@ -1,1 +1,1 @@
-# COMP2537_A02
+# COMP 2537 Web Development 2 Assignment 2
