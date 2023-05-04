@@ -72,7 +72,10 @@ function adminAuthorization(req, res, next) {
   if (!isAdmin(req)) {
     var isAuthenticated = req.session.authenticated || false;
     res.status(403);
-    res.render("403", { authenticated: isAuthenticated, error: "Not Authorized - 403" });
+    res.render("403", {
+      authenticated: isAuthenticated,
+      error: "Not Authorized - 403",
+    });
     return;
   } else {
     next();
@@ -85,7 +88,10 @@ app.get("/", (req, res) => {
     res.render("main", { authenticated: isAuthenticated });
     return;
   } else {
-    res.render("index", { authenticated: isAuthenticated, username: req.session.username });
+    res.render("index", {
+      authenticated: isAuthenticated,
+      username: req.session.username,
+    });
   }
 });
 
@@ -228,13 +234,16 @@ app.get("/logout", (req, res) => {
   res.redirect("/");
 });
 
-app.get('/members', (req, res) => {
+app.get("/members", (req, res) => {
   var isAuthenticated = req.session.authenticated;
   if (!isAuthenticated) {
-    res.redirect('login');
+    res.redirect("login");
   } else {
     var username = req.session.username;
-    res.render("members", { authenticated: isAuthenticated, username: username });
+    res.render("members", {
+      authenticated: isAuthenticated,
+      username: username,
+    });
   }
 });
 
@@ -244,7 +253,11 @@ app.get("/admin", sessionValidation, adminAuthorization, async (req, res) => {
     .project({ username: 1, user_type: 1 })
     .toArray();
   var isAuthenticated = req.session.authenticated || false;
-  res.render("admin", { users: result, username: req.session.username, authenticated: isAuthenticated });
+  res.render("admin", {
+    users: result,
+    username: req.session.username,
+    authenticated: isAuthenticated,
+  });
 });
 
 app.get("/promote/:username", async (req, res) => {
@@ -279,7 +292,12 @@ app.use(express.static(__dirname + "/public"));
 
 app.get("*", (req, res) => {
   res.status(404);
-  res.render("404");
+  var isAuthenticated = req.session.authenticated || false;
+  res.render("404", {
+    authenticated: isAuthenticated,
+    error: "Page not found",
+  });
+  return;
 });
 
 app.listen(port, () => {

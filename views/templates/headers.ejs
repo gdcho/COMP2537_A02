@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>COMP 2537</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
@@ -17,15 +16,15 @@
       <a class="navbar-brand" href="/">COMP 2537</a>
     </div>
     <ul class="nav navbar-nav">
-      <li class="active"><a href="/">Home</a></li>
-      <li><a href="admin">Admin</a></li>
-      <li><a href="members">Member</a></li>
+      <li class="active"><a href="/" style="font-size: 20px">Home</a></li>
+      <li><a href="admin" style="font-size: 20px">Admin</a></li>
+      <li><a href="members" style="font-size: 20px">Member</a></li>
     </ul>
     <ul class="nav navbar-nav navbar-right">
       <% if (authenticated) { %>
-        <li><a href="/logout">Log-out</a></li>
+        <li><a href="/logout" style="font-size: 20px">Log-out</a></li>
       <% } else { %>
-        <li><a href="/login">Log-in</a></li>
+        <li><a href="/login" style="font-size: 20px">Log-in</a></li>
       <% } %>
     </ul>
   </div>

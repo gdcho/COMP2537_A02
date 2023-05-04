@@ -3,8 +3,15 @@
   <title>Home</title>
 </head>
 <body>
-  <h1>Welcome to the Main Page</h1>
-  <a href="/signup">Sign up</a>
-  <a href="/login">Log in</a>
+  <div class="container-fluid">
+  <h1 style="text-align: center;">Welcome to COMP 2537 Assignment 2</h1>
+  </div>
+  <div class="container-fluid">
+  <img src="/cat_cover.jpg" width="500px" style="padding-top: 30px; padding-bottom: 50px;"></img>
+  </div>
+  <div class="container-fluid">
+    <a class="btn btn-primary" href="/signup" role="button" style="margin: auto; padding: 10px; font-size: 20px;">Sign up</a>
+    <a class="btn btn-primary" href="/login" role="button" style="margin: auto; padding: 10px; font-size: 20px;">Log in</a>
+  </div>
 </body>
 <%- include("templates/footer") %>
