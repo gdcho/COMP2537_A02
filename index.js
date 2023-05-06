@@ -95,7 +95,7 @@ app.get("/", (req, res) => {
   }
 });
 
-app.get("/nosql-injection", async (req, res) => {
+app.get("/nosql-injection", sessionValidation, async (req, res) => {
   var username = req.query.user;
 
   if (!username) {
@@ -162,7 +162,13 @@ app.post("/submitUser", async (req, res) => {
   const validationResult = schema.validate({ email, username, password });
   if (validationResult.error != null) {
     console.log(validationResult.error);
-    res.render("errorMessage", { error: `${validationResult.error.message}` });
+    res.render("signup_error", { error: `${validationResult.error.message}`, authenticated: req.session.authenticated });
+    return;
+  }
+
+  const user = await userCollection.findOne({ email: email });
+  if (user) {
+    res.render("signup_error", { error: "Email already exists", authenticated: req.session.authenticated });
     return;
   }
 
@@ -182,6 +188,7 @@ app.post("/submitUser", async (req, res) => {
   res.redirect("/members");
 });
 
+
 app.post("/loggingIn", async (req, res) => {
   var email = req.body.email;
   var password = req.body.password;
@@ -190,7 +197,7 @@ app.post("/loggingIn", async (req, res) => {
   const validationResult = schema.validate(email);
   if (validationResult.error != null) {
     console.log(validationResult.error);
-    res.render("errorMessage", { error: `${validationResult.error.message}` });
+    res.render("errorMessage", { error: `${validationResult.error.message}`, authenticated: req.session.authenticated });
     return;
   }
 
@@ -201,7 +208,10 @@ app.post("/loggingIn", async (req, res) => {
 
   console.log(result);
   if (result.length != 1) {
-    res.render("errorMessage", { error: "User does not exist" });
+    res.render("errorMessage", { 
+      error: "User does not exist",
+      authenticated: req.session.authenticated,
+    });
     return;
   }
   if (await bcrypt.compare(password, result[0].password)) {
@@ -216,18 +226,12 @@ app.post("/loggingIn", async (req, res) => {
   } else {
     res.render("errorMessage", {
       error: "Incorrect email/password combination",
-    });
-    return;
+      authenticated: req.session.authenticated,
+    });    
+    return;    
   }
 });
 
-app.use("/loggedin", sessionValidation);
-app.get("/loggedin", (req, res) => {
-  if (!req.session.authenticated) {
-    res.redirect("/login");
-  }
-  res.render("loggedin");
-});
 
 app.get("/logout", (req, res) => {
   req.session.destroy();

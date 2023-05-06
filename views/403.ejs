@@ -1,10 +1,22 @@
 <%- include("templates/headers") %>
 <head>
-    <title>403 - Not Authorized</title>
-  </head>
-  <body>
-    <h1><%= error %></h1>
-    <img src="/cat_403.jpg" width="500px"></img>
-    <a href="/">Go back to the main page</a>
-  </body>
+  <title>403 - Not Authorized</title>
+</head>
+<body class="bg-light">
+  <div class="container-fluid">
+    <div class="row justify-content-center">
+      <div class="col-md-8 col-lg-12">
+        <div class="card mt-5">
+          <div class="card-header text-white">
+            <h1 class="card-title"><%= error %></h1>
+          </div>
+          <div class="card-body text-center">
+            <img src="/cat_403.jpg" class="img-fluid mb-4" alt="403 Error Image" style="max-height: 300px; padding-bottom: 20px">
+            <a href="/" class="btn btn-primary btn-lg btn-block mb-4">Main page</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
 <%- include("templates/footer") %>
